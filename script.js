@@ -1,8 +1,11 @@
 /* Mood colors */
 
 const moodColors = {
-  /* Happy – Apricot */
-  happy: "#FBCEB1",
+    /* Happy – Apricot
+      Hex: #FFFAA0
+      RGB: 255, 250, 160
+      HSL: 57, 100, 81 */
+    happy: "#FFFAA0",
 
   /* Sad – Pastel Blue */
   sad: "#A7C7E7",
@@ -13,11 +16,29 @@ const moodColors = {
   /* Loved – Light Pink */
   loved: "#FFB6C1",
 
+  /* Anxious – Wisteria */
+  anxious: "#BDB5D5",
+
+  /* Surprised – Coral */
+  surprised: "#FF7F50",
+
   /* Neutral – Nude */
   neutral: "#F2D2BD",
 
   /* Angry – Crimson */
   angry: "#DC143C"
+};
+
+/* Emoji map for diaries and small UI */
+const moodEmojiMap = {
+  happy: "🔅",
+  neutral: "🪷",
+  energetic: "🎧",
+  loved: "🤍",
+  sad: "🫧",
+  angry: "🌪️",
+  anxious: "👾",
+  surprised: "🥠"
 };
 
 /* Mood counts */
@@ -27,6 +48,8 @@ const moodCounts = {
   sad: 0,
   energetic: 0,
   loved: 0,
+  anxious: 0,
+  surprised: 0,
   neutral: 0,
   angry: 0
 };
@@ -75,6 +98,8 @@ function prettyMoodName(key) {
     sad: "Sad",
     energetic: "Energetic",
     loved: "Loved",
+    anxious: "Anxious",
+    surprised: "Surprised",
     neutral: "Neutral",
     angry: "Angry"
   };
@@ -273,20 +298,27 @@ function renderArchiveGrid() {
         )
         .join("");
 
+      const nameLabel = jar.name || title;
+      const entriesCount = (Array.isArray(jar.entries) ? jar.entries.length : jar.totalEntries) || 0;
+
       return `
-        <button class="archive-item" data-archive-id="${jar.id}">
-          <div class="archive-mini-jar">
-            <div class="archive-mini-glass">
-              <div class="archive-mini-layers">
-                ${layerDivs}
+        <div class="archive-card">
+          <button class="archive-item" data-archive-id="${jar.id}">
+            <div class="archive-mini-jar">
+              <div class="archive-mini-glass">
+                <div class="archive-mini-layers">
+                  ${jar.layersHTML || layerDivs}
+                </div>
               </div>
             </div>
-          </div>
-          <div class="archive-meta">
-            <p class="archive-meta-title">${title}</p>
-            <p class="archive-meta-sub">${dateLabel || "Unknown range"} · ${total} mood${total === 1 ? "" : "s"}</p>
-          </div>
-        </button>
+            <div class="archive-meta">
+              <p class="archive-meta-title">${escapeHtml(nameLabel)}</p>
+              <p class="archive-meta-sub">${dateLabel || "Unknown range"}</p>
+              <p class="archive-meta-sub small">${entriesCount} entr${entriesCount === 1 ? 'y' : 'ies'}</p>
+            </div>
+          </button>
+          <button class="archive-edit" data-archive-id="${jar.id}" aria-label="Rename archived jar">✏️</button>
+        </div>
       `;
     })
     .join("");
@@ -585,6 +617,21 @@ document
       addRecentMood(selectedMood);
       updateJarSideUI();
 
+      const noteEl =
+        document.getElementById("diaryText");
+      const note =
+        noteEl && noteEl.value
+          ? noteEl.value.trim()
+          : "";
+      currentEntries.push({
+        mood: selectedMood,
+        note,
+        at: new Date().toISOString()
+      });
+      if (noteEl) {
+        noteEl.value = "";
+      }
+
       drop.remove();
 
     }, 900);
@@ -601,51 +648,122 @@ document
 
 function showWrap() {
 
-  const total =
-    getTotalMoods();
+  const total = getTotalMoods();
 
   if (total === 0) {
     alert("Your jar is empty 🌙");
     return;
   }
 
-  let statsHTML = "";
+  const wrapTotalLabel = document.getElementById("wrapTotalLabel");
+  if (wrapTotalLabel) {
+    wrapTotalLabel.textContent = `${total} mood${total === 1 ? "" : "s"} logged`;
+  }
+
+  const jarSnapshot = {
+    id: currentJar.id,
+    createdAt: currentJar.createdAt,
+    moods: { ...moodCounts },
+    layers: liquidBands.map(b => b.color),
+    entries: currentEntries.slice(),
+    totalEntries: total
+  };
+
+  const statsPane = document.getElementById("wrapStatsPane");
+  const diaryPane = document.getElementById("wrapDiaryPane");
+
+  renderWrapStats(statsPane, jarSnapshot);
+  renderWrapDiary(diaryPane, jarSnapshot.entries);
+  initWrapTabs(document.getElementById("wrapPopup"));
+
+  document.getElementById("wrapPopup").classList.add("active");
+}
+
+function renderWrapStats(container, jar) {
+  if (!container) return;
+  const total = jar.totalEntries || Object.values(jar.moods || {}).reduce((a,b)=>a+b,0);
+
+  if (!total) {
+    container.innerHTML = `<p class="recent-empty">No moods yet.</p>`;
+    return;
+  }
+
   let topMood = null;
   let maxCount = 0;
-
-  for (let mood in moodCounts) {
-
-    const count = moodCounts[mood];
-    const percent =
-      Math.round((count / total) * 100);
-
-    statsHTML +=
-      `<p>${prettyMoodName(mood)}: ${percent}% (${count})</p>`;
-
+  let rows = [];
+  for (const key in jar.moods) {
+    const count = jar.moods[key] || 0;
+    const percent = Math.round((count / total) * 100);
+    rows.push(`<div>${prettyMoodName(key)} — ${percent}% (${count})</div>`);
     if (count > maxCount) {
       maxCount = count;
-      topMood = mood;
+      topMood = key;
     }
   }
 
-  statsHTML =
-    `<h3>Most felt: ${prettyMoodName(topMood)} 💗</h3>`
-    + statsHTML;
+  const html = `
+    <h3>Most felt: ${prettyMoodName(topMood) || 'Mixed'} 💗</h3>
+    <div class="wrap-stats-list">${rows.join("")}</div>
+    <div style="margin-top:8px;color:#6b7280">Total drops: ${total}</div>
+  `;
+  container.innerHTML = html;
+}
 
-  document
-    .getElementById("wrapStats")
-    .innerHTML = statsHTML;
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[s]);
+}
 
-  const totalLabel =
-    document.getElementById("wrapTotalLabel");
-  if (totalLabel) {
-    totalLabel.textContent =
-      `${total} mood${total === 1 ? "" : "s"} logged`;
+function renderWrapDiary(container, entries) {
+  if (!container) return;
+  if (!entries || !entries.length) {
+    container.innerHTML = `<p class="recent-empty">No diary entries.</p>`;
+    return;
   }
 
-  document
-    .getElementById("wrapPopup")
-    .classList.add("active");
+  const items = entries.map(e => {
+    const emoji = moodEmojiMap[e.mood] || '💭';
+    const label = prettyMoodName(e.mood);
+    const time = e.at ? new Date(e.at).toLocaleString() : '';
+    return `
+      <div class="wrap-diary-card">
+        <div class="wrap-diary-emoji">${emoji}</div>
+        <div class="wrap-diary-body">
+          <div class="wrap-diary-head">${label}</div>
+          <div class="wrap-diary-text">${escapeHtml(e.note || e.text || '')}</div>
+          <div class="wrap-diary-time">${time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = items;
+}
+
+let wrapTabsInitialized = false;
+function initWrapTabs(root) {
+  if (!root || wrapTabsInitialized) return;
+  wrapTabsInitialized = true;
+  root.querySelectorAll('.wrap-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.getAttribute('data-wrap-tab');
+      // deactivate siblings
+      root.querySelectorAll('.wrap-tab').forEach(t => t.classList.toggle('active', t === tab));
+
+      // hide/show panes
+      if (target === 'stats' || target === 'archive-stats') {
+        const stats = root.querySelector('#wrapStatsPane') || root.querySelector('#archiveStatsPane');
+        const diary = root.querySelector('#wrapDiaryPane') || root.querySelector('#archiveDiaryPane');
+        if (stats) stats.style.display = '';
+        if (diary) diary.style.display = 'none';
+      } else {
+        const stats = root.querySelector('#wrapStatsPane') || root.querySelector('#archiveStatsPane');
+        const diary = root.querySelector('#wrapDiaryPane') || root.querySelector('#archiveDiaryPane');
+        if (stats) stats.style.display = 'none';
+        if (diary) diary.style.display = '';
+      }
+    });
+  });
 }
 
 /* Close popup */
@@ -657,7 +775,243 @@ function closeWrap() {
     .classList.remove("active");
 }
 
+/* Reset jar + archive */
+
+function archiveCurrentJar() {
+  const total = getTotalMoods();
+  if (total === 0) {
+    return;
+  }
+  const archivedAt = new Date().toISOString();
+
+  const layersColors = liquidBands.map(band => band.color);
+  const layersHTML = layersColors
+    .map(c => `<div class="archive-mini-layer" style="background:${c};"></div>`)
+    .join("");
+
+  const dateLabel = formatDateRange(currentJar.createdAt, archivedAt);
+  const defaultName = `Archived Jar — ${dateLabel}`;
+
+  let nameInput = prompt('Name this archived jar (optional)\nExample: "January Reflections 🌸"', '');
+  if (nameInput === null) nameInput = '';
+  nameInput = nameInput.trim().slice(0, 40); // limit 40 chars
+  const finalName = nameInput || defaultName;
+
+  const snapshot = {
+    id: currentJar.id,
+    name: finalName,
+    createdAt: currentJar.createdAt,
+    startDate: currentJar.createdAt,
+    endDate: archivedAt,
+    archivedAt: archivedAt,
+    totalEntries: total,
+    moods: { ...moodCounts },
+    layers: layersColors,
+    layersHTML: layersHTML,
+    entries: currentEntries.slice()
+  };
+
+  archivedJars.unshift(snapshot);
+  saveArchives();
+  renderArchiveGrid();
+}
+
+function resetCurrentJarState() {
+  // Clear liquid
+  liquidBands.length = 0;
+  waveTime = 0;
+  dropImpulse = 0;
+  jarCtx.clearRect(
+    0,
+    0,
+    jarCanvas.width,
+    jarCanvas.height
+  );
+
+  // Reset counts
+  for (const key in moodCounts) {
+    moodCounts[key] = 0;
+  }
+
+  currentEntries = [];
+  currentJar = {
+    id: `jar_${Date.now()}`,
+    createdAt: new Date().toISOString()
+  };
+
+  updateJarSideUI();
+  renderRecentMoods();
+}
+
+const resetModal =
+  document.getElementById("resetModal");
+
+document
+  .getElementById("resetJarBtn")
+  .addEventListener("click", () => {
+    if (!resetModal) return;
+    resetModal.classList.add("active");
+  });
+
+document
+  .getElementById("cancelResetBtn")
+  .addEventListener("click", () => {
+    if (!resetModal) return;
+    resetModal.classList.remove("active");
+  });
+
+document
+  .getElementById("confirmResetBtn")
+  .addEventListener("click", () => {
+    if (!resetModal) return;
+    archiveCurrentJar();
+    resetCurrentJarState();
+    resetModal.classList.remove("active");
+  });
+
+/* Archive detail modal */
+
+const archiveModal =
+  document.getElementById("archiveModal");
+
+function openArchiveDetail(jar) {
+  if (!archiveModal) return;
+
+  const titleEl =
+    document.getElementById("archiveDetailTitle");
+  const subEl =
+    document.getElementById("archiveDetailSub");
+  const layersEl =
+    document.getElementById("archiveDetailLayers");
+  const statsPane =
+    document.getElementById("archiveStatsPane");
+  const diaryPane =
+    document.getElementById("archiveDiaryPane");
+
+  const total = jar.totalEntries || 0;
+
+  const range =
+    formatDateRange(jar.createdAt, jar.archivedAt);
+
+  if (titleEl) {
+    titleEl.textContent = jar.name || "Archived Mood Jar";
+  }
+
+  if (subEl) {
+    subEl.textContent = `${range || "Unknown range"} · ${total} mood${total === 1 ? "" : "s"}`;
+  }
+
+  if (layersEl) {
+    const layers =
+      Array.isArray(jar.layers)
+        ? jar.layers
+        : [];
+    layersEl.innerHTML = layers
+      .map(
+        c =>
+          `<div class="archive-mini-layer" style="background:${c};"></div>`
+      )
+      .join("");
+  }
+
+  // Render stats + diary into archive panes
+  renderWrapStats(statsPane, {
+    moods: jar.moods || {},
+    totalEntries: jar.totalEntries || total
+  });
+
+  renderWrapDiary(diaryPane, jar.entries || []);
+
+  initWrapTabs(document.getElementById('archiveModal'));
+
+  archiveModal.classList.add("active");
+}
+
+document
+  .getElementById("archiveDetailClose")
+  .addEventListener("click", () => {
+    if (!archiveModal) return;
+    archiveModal.classList.remove("active");
+  });
+
+document
+  .getElementById("archiveGrid")
+  .addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    // Rename flow: if edit icon clicked
+    const editBtn = target.closest('.archive-edit');
+    if (editBtn) {
+      const id = editBtn.getAttribute('data-archive-id');
+      if (!id) return;
+      const jar = archivedJars.find(j => j.id === id);
+      if (!jar) return;
+      let newName = prompt('Rename archived jar (max 40 chars):', jar.name || '');
+      if (newName === null) return; // cancelled
+      newName = newName.trim().slice(0,40);
+      if (!newName) newName = jar.name || `Archived Jar — ${formatDateRange(jar.startDate||jar.createdAt, jar.endDate||jar.archivedAt)}`;
+      jar.name = newName;
+      saveArchives();
+      renderArchiveGrid();
+      return;
+    }
+
+    const item = target.closest('.archive-item');
+    if (!item) return;
+
+    const id = item.getAttribute('data-archive-id');
+    if (!id) return;
+
+    const jar = archivedJars.find(j => j.id === id);
+    if (!jar) return;
+
+    openArchiveDetail(jar);
+  });
+
+/* Tabs */
+
+document
+  .querySelectorAll(".tab")
+  .forEach(tab => {
+    tab.addEventListener("click", () => {
+      const target =
+        tab.getAttribute("data-tab");
+      if (!target) return;
+
+      document
+        .querySelectorAll(".tab")
+        .forEach(t => {
+          t.classList.toggle(
+            "active",
+            t === tab
+          );
+        });
+
+      const currentView =
+        document.getElementById("currentView");
+      const archiveView =
+        document.getElementById("archiveView");
+
+      if (!currentView || !archiveView) return;
+
+      const isCurrent =
+        target === "current";
+
+      currentView.classList.toggle(
+        "active",
+        isCurrent
+      );
+      archiveView.classList.toggle(
+        "active",
+        !isCurrent
+      );
+    });
+  });
+
 /* Initial UI state */
 
+loadArchives();
+renderArchiveGrid();
 updateJarSideUI();
 renderRecentMoods();

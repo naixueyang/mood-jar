@@ -93,6 +93,16 @@
               <span class="mood-label">Angry</span>
             </button>
 
+            <button class="mood-btn" data-mood="anxious">
+              <span class="mood-emoji">👾</span>
+              <span class="mood-label">Anxious</span>
+            </button>
+
+            <button class="mood-btn" data-mood="surprised">
+              <span class="mood-emoji">🥠</span>
+              <span class="mood-label">Surprised</span>
+            </button>
+
           </div>
 
           <textarea
@@ -169,7 +179,15 @@
           <button class="wrap-close" onclick="closeWrap()">✕</button>
         </div>
 
-        <div id="wrapStats"></div>
+        <div class="wrap-tabs">
+          <button class="wrap-tab active" data-wrap-tab="stats">Mood Stats</button>
+          <button class="wrap-tab" data-wrap-tab="diary">Diary Memories</button>
+        </div>
+
+        <div id="wrapContent" class="wrap-content">
+          <div id="wrapStatsPane" class="wrap-pane"></div>
+          <div id="wrapDiaryPane" class="wrap-pane" style="display:none;"></div>
+        </div>
 
       </div>
 
@@ -213,7 +231,17 @@
               </div>
             </div>
           </div>
-          <div id="archiveDetailStats"></div>
+
+          <div class="wrap-tabs">
+            <button class="wrap-tab active" data-wrap-tab="archive-stats">Mood Stats</button>
+            <button class="wrap-tab" data-wrap-tab="archive-diary">Diary Memories</button>
+          </div>
+
+          <div id="archiveContent" class="wrap-content">
+            <div id="archiveStatsPane" class="wrap-pane"></div>
+            <div id="archiveDiaryPane" class="wrap-pane" style="display:none;"></div>
+          </div>
+
         </div>
 
       </div>
