@@ -27,7 +27,7 @@ Think: Digital emotion bottle × memory jar × water art therapy.
 
     ✏️ Diary Memories — Each mood can hold a written reflection
   
-  ![Diary Memories](https://raw.githubusercontent.com/ynx0618/mood-jar/main/Dairy%20Memories.png)
+  ![Diary Memories](https://raw.githubusercontent.com/ynx0618/mood-jar/main/Diary%20Memories.png)
   
     🫙 Jar Fill Visualization — Watch the jar fill over time
     
