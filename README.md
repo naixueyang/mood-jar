@@ -1,4 +1,5 @@
 🌸 Mood Jar
+
 🌐 Live at: https://ynx0618.github.io/mood-jar/
 
 ✨ Concept
@@ -21,12 +22,19 @@ Think: Digital emotion bottle × memory jar × water art therapy.
 ![Add Mood Animation](https://raw.githubusercontent.com/ynx0618/mood-jar/main/Add_Mood.gif)
 
     📊 Mood Wrap — View emotional distribution and dominant feelings
+
+  ![Mood Wrap](https://raw.githubusercontent.com/ynx0618/mood-jar/main/Mood%20Wrap.png)
+
+    ✏️ Diary Memories — Each mood can hold a written reflection
+  
     
     🫙 Jar Fill Visualization — Watch the jar fill over time
     
+  ![Filled Mood Jar](https://raw.githubusercontent.com/ynx0618/mood-jar/main/Filled%20Mood%20Jar.png)
+  
     🗂️ Archive Collection — Store and revisit past jars
     
-    ✏️ Diary Memories — Each mood can hold a written reflection
+  ![Archived Jars](https://raw.githubusercontent.com/ynx0618/mood-jar/main/Archived%20Jars.png)
     
     🔄 Reset Jar — Start a fresh emotional cycle anytime
 
