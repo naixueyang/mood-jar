@@ -137,7 +137,7 @@ Think: Digital emotion bottle × memory jar × sand art therapy.
 
       Clone the repo:
       
-      git clone https://github.com/yourusername/mood-jar.git
+      git clone https://github.com/ynx0618/mood-jar.git
       
       
       Open folder.
