@@ -56,6 +56,74 @@ const moodCounts = {
 
 let selectedMood = null;
 
+/* ====== ATMOSPHERE LAYER: RAIN EFFECT ====== */
+const RainEffect = {
+  container: null,
+  isActive: false,
+
+  init() {
+    this.container = document.getElementById('atmosphereLayer');
+  },
+
+  generate() {
+    if (!this.container) return;
+    this.container.innerHTML = '';
+
+    const rainLayer = document.createElement('div');
+    rainLayer.className = 'rain-container';
+
+    let increment = 0;
+    while (increment < 100) {
+      const randoHundo = Math.floor(Math.random() * (98 - 1 + 1) + 1);
+      const randoFiver = Math.floor(Math.random() * (3 - 1 + 1) + 1);
+      increment += randoFiver;
+
+      const drop = document.createElement('div');
+      drop.className = 'rain-drop';
+      drop.style.left = increment + '%';
+      drop.style.bottom = (randoFiver + randoFiver - 1 + 100) + '%';
+      drop.style.animationDelay = '0.' + randoHundo + 's';
+      drop.style.animationDuration = '0.8' + randoHundo + 's';
+
+      const stem = document.createElement('div');
+      stem.className = 'rain-stem';
+      stem.style.animationDelay = '0.' + randoHundo + 's';
+      stem.style.animationDuration = '0.8' + randoHundo + 's';
+
+      const splat = document.createElement('div');
+      splat.className = 'rain-splat';
+      splat.style.animationDelay = '0.' + randoHundo + 's';
+      splat.style.animationDuration = '0.8' + randoHundo + 's';
+
+      drop.appendChild(stem);
+      drop.appendChild(splat);
+      rainLayer.appendChild(drop);
+    }
+
+    this.container.appendChild(rainLayer);
+  },
+
+  show() {
+    if (!this.container) return;
+    this.generate();
+    setTimeout(() => {
+      this.container.classList.add('rain-active');
+      this.isActive = true;
+    }, 10);
+  },
+
+  hide() {
+    if (!this.container) return;
+    this.container.classList.remove('rain-active');
+    this.isActive = false;
+    setTimeout(() => {
+      if (!this.isActive) {
+        this.container.innerHTML = '';
+      }
+    }, 600);
+  }
+};
+
 /* Canvas + liquid state */
 
 const jarCanvas =
@@ -345,6 +413,8 @@ function spawnFloatingEmoji(emoji, x, y) {
 
 /* Select emoji */
 
+RainEffect.init();
+
 document.querySelectorAll(".mood-btn")
 .forEach(btn => {
 
@@ -356,6 +426,13 @@ document.querySelectorAll(".mood-btn")
 
     btn.classList.add("selected");
     selectedMood = btn.dataset.mood;
+
+    // Handle rain effect for sad mood
+    if (selectedMood === "sad") {
+      RainEffect.show();
+    } else {
+      RainEffect.hide();
+    }
 
     const rect = btn.getBoundingClientRect();
 
